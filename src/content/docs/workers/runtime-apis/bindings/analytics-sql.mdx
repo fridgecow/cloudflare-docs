@@ -6,9 +6,53 @@ products:
   - workers
 ---
 
-The Analytics SQL binding queries analytics datasets from a Worker. The binding authenticates as the account that owns the Worker, so it does not require an API token.
+import { TypeScriptExample, WranglerConfig } from "~/components";
 
-To configure the binding and run a query, refer to [Query SQL API datasets from a Worker](/analytics/sql-api/workers-binding/).
+Use the Analytics SQL binding to query analytics datasets from a Worker.
+
+## Configure the binding
+
+Add an Analytics SQL binding to your Worker's Wrangler configuration:
+
+<WranglerConfig>
+
+```jsonc
+{
+	"analytics": {
+		"binding": "ANALYTICS_SQL"
+	}
+}
+```
+
+</WranglerConfig>
+
+The `binding` value determines the property used to access the binding on your Worker's `env` object.
+
+## Use the binding
+
+<TypeScriptExample>
+
+```ts
+interface Env {
+	ANALYTICS_SQL: AnalyticsSQLBinding;
+}
+
+type CountRow = {
+	requests: number;
+};
+
+export default {
+	async fetch(_request, env): Promise<Response> {
+		const result = await env.ANALYTICS_SQL.query<CountRow>({
+			query: "SELECT COUNT(*) AS requests FROM events.httpRequests",
+		});
+
+		return Response.json(result);
+	},
+} satisfies ExportedHandler<Env>;
+```
+
+</TypeScriptExample>
 
 ## `query()`
 
