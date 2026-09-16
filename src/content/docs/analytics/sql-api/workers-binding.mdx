@@ -6,36 +6,48 @@ sidebar:
   order: 4
 ---
 
+import { TypeScriptExample, WranglerConfig } from "~/components";
+
 The Analytics SQL binding lets a Cloudflare Worker query SQL API datasets without making an HTTP request or managing an API token. Each binding is scoped to the Cloudflare account that owns the Worker.
 
 ## Configure the binding
 
 Add an Analytics SQL binding to your Worker's Wrangler configuration:
 
+<WranglerConfig>
+
 ```jsonc
 {
-	"unsafe": {
-		"bindings": [
-			{
-				"name": "ANALYTICS_SQL",
-				"type": "analytics",
-			},
-		],
-	},
+	"analytics": {
+		"binding": "ANALYTICS_SQL"
+	}
 }
 ```
 
-The `name` value determines how you access the binding on your Worker's `env` object.
+</WranglerConfig>
+
+The `binding` value determines how you access the binding on your Worker's `env` object.
 
 ## Query from a Worker
 
 Call the binding's `query()` method with a SQL statement and optional parameters:
 
-```js
+<TypeScriptExample>
+
+```ts
+interface Env {
+	ANALYTICS_SQL: AnalyticsSQLBinding;
+}
+
+type StatusRow = {
+	status: number;
+	requests: number;
+};
+
 export default {
-	async fetch(_request, env) {
+	async fetch(_request, env): Promise<Response> {
 		const start = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-		const result = await env.ANALYTICS_SQL.query({
+		const result = await env.ANALYTICS_SQL.query<StatusRow>({
 			query: `
         SELECT edgeResponseStatus AS status, COUNT(*) AS requests
         FROM events.httpRequests
@@ -49,8 +61,10 @@ export default {
 
 		return Response.json(result);
 	},
-};
+} satisfies ExportedHandler<Env>;
 ```
+
+</TypeScriptExample>
 
 Do not include an `accountTag` or `zoneTag` predicate in a binding query. The binding supplies the Worker's account scope separately and the API rejects a query that also specifies tenancy in SQL.
 
@@ -89,3 +103,5 @@ The method returns the same result structure as the HTTP API:
 ```
 
 The binding does not retry failed requests automatically. A thrown error includes a boolean `retryable` property that indicates whether retrying may succeed. Apply bounded exponential backoff only when `retryable` is `true`.
+
+For the complete binding interface, refer to [Analytics SQL binding](/workers/runtime-apis/bindings/analytics-sql/). For supported datasets and SQL syntax, refer to [Datasets](/analytics/sql-api/datasets/) and the [SQL language reference](/analytics/sql-api/sql-reference/).
